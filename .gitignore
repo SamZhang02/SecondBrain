@@ -1,2 +1,6 @@
 __pycache__/
 dist/
+
+.env
+node_modules/
+
