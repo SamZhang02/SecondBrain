@@ -1,21 +1,17 @@
-set positional-arguments
-
-PNPM ?= pnpm
-
 default:
 	@just --list
 
 install:
-	{{PNPM}} install
+	pnpm install
 
 dev:
-	{{PNPM}} run dev
+	pnpm run dev
 
 build:
-	{{PNPM}} run build
+	pnpm run build
 
 lint:
-	{{PNPM}} run lint
+	pnpm run lint
 
 preview:
-	{{PNPM}} run preview
+	pnpm run preview
