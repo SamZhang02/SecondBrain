@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/dubhack/__init__.py
+src/dubhack/app.py
+src/dubhack.egg-info/PKG-INFO
+src/dubhack.egg-info/SOURCES.txt
+src/dubhack.egg-info/dependency_links.txt
+src/dubhack.egg-info/requires.txt
+src/dubhack.egg-info/top_level.txt
+tests/test_app.py

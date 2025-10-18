@@ -1,7 +1,66 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "dubhack"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+  "fastapi[standard]>=0.109",
+  "ruff>=0.14.1",
+  "uvicorn[standard]>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black>=24.1",
+  "ruff>=0.2",
+  "mypy>=1.8",
+  "pytest>=7.4",
+  "pytest-asyncio>=0.23",
+  "httpx>=0.26",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.black]
+line-length = 100
+target-version = ["py313"]
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-markers"]
+asyncio_mode = "auto"
+testpaths = [
+  "tests",
+]
+
+[tool.mypy]
+python_version = "3.13"
+pretty = true
+show_error_codes = true
+warn_unused_configs = true
+warn_return_any = true
+disallow_untyped_defs = true
+plugins = []
+mypy_path = ["src"]

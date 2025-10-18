@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: dubhack
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.13
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi[standard]>=0.109
+Requires-Dist: ruff>=0.14.1
+Requires-Dist: uvicorn[standard]>=0.27
+Provides-Extra: dev
+Requires-Dist: black>=24.1; extra == "dev"
+Requires-Dist: ruff>=0.2; extra == "dev"
+Requires-Dist: mypy>=1.8; extra == "dev"
+Requires-Dist: pytest>=7.4; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23; extra == "dev"
+Requires-Dist: httpx>=0.26; extra == "dev"
