@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7
+    container_name: secondbrain-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    # ^ disables persistence; memory-only, perfect for demo
+
+volumes:
+  redisdata:

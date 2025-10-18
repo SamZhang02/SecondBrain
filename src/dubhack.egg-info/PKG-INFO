@@ -5,6 +5,8 @@ Summary: Add your description here
 Requires-Python: >=3.13
 Description-Content-Type: text/markdown
 Requires-Dist: fastapi[standard]>=0.109
+Requires-Dist: pytest>=8.4.2
+Requires-Dist: redis>=6.4.0
 Requires-Dist: ruff>=0.14.1
 Requires-Dist: uvicorn[standard]>=0.27
 Provides-Extra: dev

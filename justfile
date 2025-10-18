@@ -25,4 +25,17 @@ dev-server:
 dev-client:
 	just client/dev
 
+db-up:
+	echo "🧹 Starting Redis container..."
+	docker compose up -d
+	echo "✅ Redis started."
 
+db-down:
+	echo "🧹 Stopping Redis container..."
+	docker compose down
+	echo "✅ Redis stopped."
+
+db-wipe:
+	echo "🧹 Wiping Redis container..."
+	docker exec -it secondbrain-redis redis-cli FLUSHALL
+	echo "✅ Redis Wiped"

@@ -1,18 +1,5 @@
-import { useState } from "react";
-import { Button } from "./components/ui/button";
-
-function App() {
-  const [count, setCount] = useState(0);
-
-  return (
-    <>
-      <div>
-        <Button variant="outline" onClick={() => setCount(count + 1)}>
-          Count: {count}
-        </Button>
-      </div>
-    </>
-  );
-}
+const App = () => {
+  return <div className="h-screen">hello</div>;
+};
 
 export default App;
