@@ -136,7 +136,7 @@ class Orchestrator:
             if self._concept_populator and documents:
                 keyword_set = {keyword for keywords in concepts.values() for keyword in keywords}
                 if keyword_set:
-                    self._concept_populator.populate(keyword_set, documents)
+                    self._concept_populator.populate(keyword_set, documents, concepts)
                     if self._cancel_event.is_set():
                         self._last_concepts = self._concept_extractor.progress()
                         return {}
