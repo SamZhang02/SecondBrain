@@ -24,7 +24,11 @@ class ConceptExtractor:
     PROMPT_TEMPLATE = """
 You are an expert knowledge architect. A document is attached to this message.
 Read only the provided document and identify the most important concepts or
-keywords contained in it. Return between 5 and 12 concise keyword strings. Use proper casing with capitalized first letter if relevantcapitalized first letter if relevant.
+keywords contained in it. Be careful to not extract an acronym that has already been extracted as its full term, e.g. NLP vs Natural Language processing.
+
+Return between 5 and 12 concise keyword strings. 
+
+Use proper casing with capitalized first letter if relevantcapitalized first letter if relevant.
 
 Respond ONLY with JSON in the following format:
 {{"document": "{document_name}", "keywords": ["keyword one", "keyword two", ...]}}
