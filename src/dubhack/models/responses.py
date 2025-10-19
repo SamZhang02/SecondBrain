@@ -1,8 +1,8 @@
 """Response models for FastAPI endpoints."""
 
-from typing import Any
-
 from pydantic import BaseModel, Field
+
+from .graph import ForceGraphData
 
 
 class StatusResponse(BaseModel):
@@ -34,7 +34,7 @@ class PipelineStatusResponse(BaseModel):
         default_factory=list,
         description="List of concept names successfully written to the concept store.",
     )
-    graph: Any | None = Field(
+    graph: ForceGraphData | None = Field(
         default=None,
         description="Graph output produced during the graphing stage, if available.",
     )

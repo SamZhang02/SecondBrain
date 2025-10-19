@@ -6,25 +6,20 @@ import logging
 from enum import Enum
 from pathlib import Path
 from threading import Event, Lock
-from typing import Any, Optional, Protocol
+from typing import Optional, Protocol
 
 from botocore.exceptions import ClientError
 
+from dubhack.models import ForceGraphData
 from dubhack.redis.concept_store import ConceptStore
 from dubhack.services.concept_extractor import ConceptExtractor, ConceptMap
 from dubhack.services.concept_populator import ConceptPopulator
 from dubhack.services.document_store import DocumentStore
+from dubhack.services.graph_builder import ConceptGraphBuilder
 from dubhack.services.pdf_compressor import PDFCompressor
 
 
 logger = logging.getLogger(__name__)
-
-
-class GraphBuilder(Protocol):
-    """Protocol describing the graph building step."""
-
-    def build(self, concepts: ConceptMap) -> Any:  # pragma: no cover - structural typing
-        ...
 
 
 class PipelineState(str, Enum):
@@ -45,7 +40,7 @@ class Orchestrator:
         document_store: DocumentStore,
         concept_extractor: ConceptExtractor,
         concept_populator: Optional[ConceptPopulator] = None,
-        graph_builder: Optional[GraphBuilder] = None,
+        graph_builder: Optional[ConceptGraphBuilder] = None,
         concept_store: Optional[ConceptStore] = None,
         pdf_compressor: Optional[PDFCompressor] = None,
     ) -> None:
@@ -61,7 +56,7 @@ class Orchestrator:
         self._cancel_event = Event()
 
         self._last_concepts: ConceptMap = {}
-        self._last_graph: Any = None
+        self._last_graph: ForceGraphData | None = None
         self._error_message: str | None = None
         self._last_compressed: list[str] = []
 
@@ -88,7 +83,7 @@ class Orchestrator:
 
         return self._last_concepts
 
-    def last_graph(self) -> Any:
+    def last_graph(self) -> ForceGraphData | None:
         """Return the most recent graph object produced by run()."""
 
         return self._last_graph
@@ -217,7 +212,11 @@ class Orchestrator:
         if isinstance(exc, ClientError):
             error = exc.response.get("Error", {})
             code = error.get("Code", "")
-            return code in {"ThrottlingException", "TooManyRequestsException", "LimitExceededException"}
+            return code in {
+                "ThrottlingException",
+                "TooManyRequestsException",
+                "LimitExceededException",
+            }
 
         message = str(exc)
         throttle_markers = (
