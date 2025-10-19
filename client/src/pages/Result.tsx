@@ -148,6 +148,10 @@ const Result = () => {
 
   const extractedEntries = Object.entries(status?.extracted_documents ?? {});
   const graphData = status?.graph ?? null;
+
+  useEffect(() => {
+    console.log(graphData);
+  }, [graphData]);
   const hasGraph = Boolean(
     graphData &&
       ((graphData.nodes?.length ?? 0) > 0 ||

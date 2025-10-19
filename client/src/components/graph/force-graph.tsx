@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
 export type GraphNodeId = string | number;
@@ -31,43 +31,113 @@ interface ForceGraphProps {
   colorMap?: Record<string, string>; // group -> color mapping
 }
 
+type InternalGraphNode = GraphNode & d3.SimulationNodeDatum;
+type InternalGraphLink = GraphLink & d3.SimulationLinkDatum<InternalGraphNode>;
+
 export default function ForceGraph({
   data = { nodes: [], links: [] },
-  width = 800,
-  height = 600,
+  width,
+  height,
   onNodeClick,
   onLinkClick,
-  colorMap = {},
+  colorMap,
 }: ForceGraphProps) {
-  const ref = useRef<SVGSVGElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [canvasSize, setCanvasSize] = useState({
+    width: width ?? 800,
+    height: height ?? 600,
+  });
+
+  useEffect(() => {
+    if (typeof width === "number" && typeof height === "number") {
+      setCanvasSize((current) => {
+        if (current.width === width && current.height === height) return current;
+        return { width, height };
+      });
+      return;
+    }
+
+    const svgEl = svgRef.current;
+    if (!svgEl || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const updateFromRect = (rect: DOMRectReadOnly) => {
+      const nextWidth = Math.max(1, rect.width);
+      const nextHeight = Math.max(1, rect.height);
+      setCanvasSize((current) => {
+        if (current.width === nextWidth && current.height === nextHeight) {
+          return current;
+        }
+        return { width: nextWidth, height: nextHeight };
+      });
+    };
+
+    updateFromRect(svgEl.getBoundingClientRect());
+
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return;
+      updateFromRect(entry.contentRect);
+    });
+
+    observer.observe(svgEl);
+
+    return () => observer.disconnect();
+  }, [width, height]);
 
   useEffect(() => {
     if (!data || !data.nodes?.length) return;
 
+    const computedWidth = canvasSize.width;
+    const computedHeight = canvasSize.height;
+    if (!computedWidth || !computedHeight) return;
+
     const svg = d3
-      .select(ref.current)
-      .attr("viewBox", [0, 0, width, height])
+      .select(svgRef.current)
+      .attr("viewBox", [0, 0, computedWidth, computedHeight])
       .style("background", "#0b1120")
       .style("border-radius", "1rem");
 
+    svg.selectAll("*").remove();
+
+    const nodes = data.nodes.map((node) => ({ ...node })) as InternalGraphNode[];
+    const links = data.links.map((link) => ({ ...link })) as InternalGraphLink[];
+    const nodeById = new Map<GraphNodeId, InternalGraphNode>();
+    nodes.forEach((node) => nodeById.set(node.id, node));
+    const fillColors = colorMap ?? {};
+
     const simulation = d3
-      .forceSimulation(data.nodes)
+      .forceSimulation<InternalGraphNode>(nodes)
       .force(
         "link",
         d3
-          .forceLink(data.links)
-          .id((d: any) => d.id)
+          .forceLink<InternalGraphNode, InternalGraphLink>(links)
+          .id((node) => node.id)
           .distance(120),
       )
       .force("charge", d3.forceManyBody().strength(-300))
-      .force("center", d3.forceCenter(width / 2, height / 2));
+      .force("center", d3.forceCenter(computedWidth / 2, computedHeight / 2))
+      .force("x", d3.forceX(computedWidth / 2).strength(0.3))
+      .force("y", d3.forceY(computedHeight / 2).strength(0.3));
+
+    const clamp = (value: number, min: number, max: number) =>
+      Math.max(min, Math.min(max, value));
+    const radius = 10;
+    const resolveLinkNode = (
+      ref: InternalGraphNode | GraphNodeId,
+    ): InternalGraphNode | undefined => {
+      if (typeof ref === "object") {
+        return ref as InternalGraphNode;
+      }
+      return nodeById.get(ref);
+    };
 
     const link = svg
       .append("g")
       .attr("stroke", "#aaa")
       .attr("stroke-opacity", 0.7)
-      .selectAll("line")
-      .data(data.links)
+      .selectAll<SVGLineElement, InternalGraphLink>("line")
+      .data(links)
       .join("line")
       .attr("stroke-width", (d) => (d.value ? Math.sqrt(d.value) : 2))
       .on("click", (_, d) => onLinkClick?.(d));
@@ -76,32 +146,32 @@ export default function ForceGraph({
       .append("g")
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
-      .selectAll("circle")
-      .data(data.nodes)
+      .selectAll<SVGCircleElement, InternalGraphNode>("circle")
+      .data(nodes)
       .join("circle")
-      .attr("r", 10)
+      .attr("r", radius)
       .attr("fill", (d) => {
-        if (d.group && colorMap[d.group]) return colorMap[d.group];
+        if (d.group && fillColors[d.group]) return fillColors[d.group];
         if (d.group) return d3.schemeTableau10[d.group.charCodeAt(0) % 10];
         return "#60a5fa";
       })
       .on("click", (_, d) => onNodeClick?.(d))
       .call(
         d3
-          .drag<SVGCircleElement, GraphNode>()
+          .drag<SVGCircleElement, InternalGraphNode>()
           .on("start", (event, d) => {
             if (!event.active) simulation.alphaTarget(0.3).restart();
-            (d as any).fx = d.x;
-            (d as any).fy = d.y;
+            d.fx = d.x;
+            d.fy = d.y;
           })
           .on("drag", (event, d) => {
-            (d as any).fx = event.x;
-            (d as any).fy = event.y;
+            d.fx = event.x;
+            d.fy = event.y;
           })
           .on("end", (event, d) => {
             if (!event.active) simulation.alphaTarget(0);
-            (d as any).fx = null;
-            (d as any).fy = null;
+            d.fx = null;
+            d.fy = null;
           }),
       );
 
@@ -110,27 +180,45 @@ export default function ForceGraph({
       .attr("text-anchor", "middle")
       .attr("font-family", "sans-serif")
       .attr("fill", "#e0f2fe")
-      .selectAll("text")
-      .data(data.nodes)
+      .selectAll<SVGTextElement, InternalGraphNode>("text")
+      .data(nodes)
       .join("text")
       .text((d) => d.label ?? String(d.id))
       .attr("font-size", 14);
 
     simulation.on("tick", () => {
       link
-        .attr("x1", (d: any) => d.source.x)
-        .attr("y1", (d: any) => d.source.y)
-        .attr("x2", (d: any) => d.target.x)
-        .attr("y2", (d: any) => d.target.y);
+        .attr("x1", (d) => resolveLinkNode(d.source)?.x ?? computedWidth / 2)
+        .attr("y1", (d) => resolveLinkNode(d.source)?.y ?? computedHeight / 2)
+        .attr("x2", (d) => resolveLinkNode(d.target)?.x ?? computedWidth / 2)
+        .attr("y2", (d) => resolveLinkNode(d.target)?.y ?? computedHeight / 2);
 
-      node.attr("cx", (d: any) => d.x).attr("cy", (d: any) => d.y);
-      label.attr("x", (d: any) => d.x).attr("y", (d: any) => d.y - 15);
+      node
+        .attr("cx", (d) => {
+          d.x = clamp(d.x ?? computedWidth / 2, radius, computedWidth - radius);
+          return d.x;
+        })
+        .attr("cy", (d) => {
+          d.y = clamp(
+            d.y ?? computedHeight / 2,
+            radius,
+            computedHeight - radius,
+          );
+          return d.y;
+        });
+
+      label
+        .attr("x", (d) => d.x ?? computedWidth / 2)
+        .attr("y", (d) => (d.y ?? computedHeight / 2) - (radius + 5));
     });
 
-    return () => svg.selectAll("*").remove();
-  }, [data, width, height, colorMap, onNodeClick, onLinkClick]);
+    return () => {
+      simulation.stop();
+      svg.selectAll("*").remove();
+    };
+  }, [data, canvasSize, colorMap, onNodeClick, onLinkClick]);
 
-  return <svg ref={ref} className="w-full h-full"></svg>;
+  return <svg ref={svgRef} className="w-full h-full"></svg>;
 }
 //
 
