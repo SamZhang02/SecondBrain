@@ -12,7 +12,6 @@ client = boto3.client("bedrock-runtime", region_name="us-west-2")
 
 # Set the model ID, e.g. Llama 3.1 8B Instruct.
 model_id = "us.meta.llama3-1-8b-instruct-v1:0"
-# model_id = "meta.llama3-1-70b-instruct-v1:0"
 
 
 def sanitize_filename(name: str) -> str:
