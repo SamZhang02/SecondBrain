@@ -95,8 +95,9 @@ export default function ForceGraph({
     const svg = d3
       .select(svgRef.current)
       .attr("viewBox", [0, 0, computedWidth, computedHeight])
-      .style("background", "#0b1120")
-      .style("border-radius", "1rem");
+      .style("background", "hsl(var(--background))")
+      .style("border-radius", "1rem")
+      .style("border", "1px solid hsl(var(--border))");
 
     svg.selectAll("*").remove();
 
@@ -134,8 +135,8 @@ export default function ForceGraph({
 
     const link = svg
       .append("g")
-      .attr("stroke", "#aaa")
-      .attr("stroke-opacity", 0.7)
+      .attr("stroke", "hsl(var(--foreground))")
+      .attr("stroke-opacity", 0.85)
       .selectAll<SVGLineElement, InternalGraphLink>("line")
       .data(links)
       .join("line")
@@ -144,7 +145,7 @@ export default function ForceGraph({
 
     const node = svg
       .append("g")
-      .attr("stroke", "#fff")
+      .attr("stroke", "hsl(var(--foreground))")
       .attr("stroke-width", 1.5)
       .selectAll<SVGCircleElement, InternalGraphNode>("circle")
       .data(nodes)
@@ -179,7 +180,7 @@ export default function ForceGraph({
       .append("g")
       .attr("text-anchor", "middle")
       .attr("font-family", "sans-serif")
-      .attr("fill", "#e0f2fe")
+      .attr("fill", "hsl(var(--foreground))")
       .selectAll<SVGTextElement, InternalGraphNode>("text")
       .data(nodes)
       .join("text")
