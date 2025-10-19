@@ -119,16 +119,24 @@ export default function ForceGraph({
         d3
           .forceLink<InternalGraphNode, InternalGraphLink>(links)
           .id((node) => node.id)
-          .distance(Math.sqrt(nodes.length) * 20),
+          .distance(Math.sqrt(nodes.length) * 50),
       )
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(computedWidth / 2, computedHeight / 2))
       .force("x", d3.forceX(computedWidth / 2).strength(0.3))
-      .force("y", d3.forceY(computedHeight / 2).strength(0.3));
+      .force("y", d3.forceY(computedHeight / 2).strength(0.3))
+      .force(
+        "collision",
+        d3.forceCollide<InternalGraphNode>().radius((d) => {
+          // Estimate text width: 3.5 px per character + padding
+          const textWidth = d.label?.length ?? 1;
+          return textWidth;
+        }),
+      );
 
     const clamp = (value: number, min: number, max: number) =>
       Math.max(min, Math.min(max, value));
-    const radius = 10;
+    const radius = 5;
     const resolveLinkNode = (
       ref: InternalGraphNode | GraphNodeId,
     ): InternalGraphNode | undefined => {
@@ -150,7 +158,6 @@ export default function ForceGraph({
 
     const node = svg
       .append("g")
-      .attr("stroke-width", 1.5)
       .selectAll<SVGCircleElement, InternalGraphNode>("circle")
       .data(nodes)
       .join("circle")
@@ -189,7 +196,7 @@ export default function ForceGraph({
       .data(nodes)
       .join("text")
       .text((d) => d.label ?? String(d.id))
-      .attr("font-size", 14);
+      .attr("font-size", 8);
 
     simulation.on("tick", () => {
       link

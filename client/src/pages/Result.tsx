@@ -480,9 +480,10 @@ const Result = () => {
                       <ForceGraph
                         data={graphData}
                         onNodeClick={handleConceptNodeClick}
+                        height={400}
                       />
                     </div>
-                    <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
+                    <div className="rounded-2xl border border-border/30 bg-background/60 p-4 overflow-auto max-h-[400px]">
                       {selectedConcept ? (
                         <div className="space-y-2">
                           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
