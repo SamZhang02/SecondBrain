@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type { ComponentPropsWithoutRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { FileWithPath } from "react-dropzone";
 import { useLocation, useNavigate } from "react-router";
@@ -51,6 +58,32 @@ const MOCK_STATUS: PipelineStatus = {
   message: null,
 };
 
+type MarkdownCodeProps = ComponentPropsWithoutRef<"code"> & {
+  inline?: boolean;
+};
+
+const CodeRenderer = ({
+  inline,
+  className,
+  children,
+  ...props
+}: MarkdownCodeProps) => {
+  if (inline) {
+    return (
+      <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
+        {children}
+      </code>
+    );
+  }
+  return (
+    <pre className="overflow-x-auto rounded-lg bg-muted/60 p-3 text-xs leading-5 text-foreground">
+      <code className={className} {...props}>
+        {children}
+      </code>
+    </pre>
+  );
+};
+
 const markdownComponents: Components = {
   p: ({ children }) => (
     <p className="text-sm leading-6 text-muted-foreground">{children}</p>
@@ -91,22 +124,7 @@ const markdownComponents: Components = {
       {children}
     </blockquote>
   ),
-  code: ({ inline, className, children, ...props }) => {
-    if (inline) {
-      return (
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
-          {children}
-        </code>
-      );
-    }
-    return (
-      <pre className="overflow-x-auto rounded-lg bg-muted/60 p-3 text-xs leading-5 text-foreground">
-        <code className={className} {...props}>
-          {children}
-        </code>
-      </pre>
-    );
-  },
+  code: CodeRenderer,
   h1: ({ children }) => (
     <h2 className="text-base font-semibold text-foreground">{children}</h2>
   ),
