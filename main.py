@@ -3,12 +3,18 @@
 import os
 import shutil
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from dubhack.config import get_concept_store, DOCUMENTS_PERSIST_PATH
-from dubhack.models import ConceptSummaryResponse, StatusResponse
+from dubhack.config import DOCUMENTS_PERSIST_PATH, get_concept_store
+from dubhack.models import (
+    ConceptSummaryResponse,
+    PipelineStatusResponse,
+    StatusResponse,
+)
 from dubhack.redis.concept_store import ConceptStore
+from dubhack.services.dependencies import get_orchestrator
+from dubhack.services.orchestrator import Orchestrator, PipelineState
 
 app = FastAPI(title="dubhack")
 
@@ -30,10 +36,17 @@ async def health() -> StatusResponse:
 
 
 @app.post("/upload", tags=["upload"], response_model=StatusResponse)
-async def upload(documents: list[UploadFile] = File(...)) -> StatusResponse:
+async def upload(
+    background_tasks: BackgroundTasks,
+    documents: list[UploadFile] = File(...),
+    orchestrator: Orchestrator = Depends(get_orchestrator),
+) -> StatusResponse:
     """Receive and persist a batch of uploaded documents."""
     if not documents:
         raise HTTPException(status_code=400, detail="No documents provided")
+
+    if orchestrator.current_state() != PipelineState.DONE.value:
+        raise HTTPException(status_code=409, detail="Pipeline is already running")
 
     DOCUMENTS_PERSIST_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -53,7 +66,33 @@ async def upload(documents: list[UploadFile] = File(...)) -> StatusResponse:
         with destination.open("wb") as output_file:
             shutil.copyfileobj(document.file, output_file)
 
-    return StatusResponse(status=f"stored {len(documents)} document(s)")
+    background_tasks.add_task(orchestrator.run)
+
+    return StatusResponse(status=f"queued processing for {len(documents)} document(s)")
+
+
+@app.get("/status", tags=["status"], response_model=PipelineStatusResponse)
+async def status(
+    orchestrator: Orchestrator = Depends(get_orchestrator),
+) -> PipelineStatusResponse:
+    """Return the current state of the document processing pipeline."""
+
+    state = orchestrator.current_state()
+    concepts = orchestrator.last_concepts() if state == PipelineState.DONE.value else None
+    graph = orchestrator.last_graph() if state == PipelineState.DONE.value else None
+
+    return PipelineStatusResponse(state=state, concepts=concepts, graph=graph)
+
+
+@app.post("/status/cancel", tags=["status"], response_model=StatusResponse)
+async def cancel(orchestrator: Orchestrator = Depends(get_orchestrator)) -> StatusResponse:
+    """Request cancellation of the running pipeline."""
+
+    if orchestrator.current_state() == PipelineState.DONE.value:
+        raise HTTPException(status_code=409, detail="Pipeline is not running")
+
+    orchestrator.cancel()
+    return StatusResponse(status="cancellation requested")
 
 
 @app.get("/concepts/{concept_name}", tags=["concepts"], response_model=ConceptSummaryResponse)

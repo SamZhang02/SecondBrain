@@ -1,5 +1,7 @@
 """Response models for FastAPI endpoints."""
 
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -14,3 +16,11 @@ class ConceptSummaryResponse(BaseModel):
 
     concept: str
     summary: str
+
+
+class PipelineStatusResponse(BaseModel):
+    """Status payload for long-running orchestration."""
+
+    state: str
+    concepts: dict[str, list[str]] | None = None
+    graph: Any | None = None

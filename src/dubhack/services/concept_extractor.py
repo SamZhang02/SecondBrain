@@ -1,1 +1,137 @@
-Concept = str
+"""Services that derive document concepts using the LLM backend."""
+
+from __future__ import annotations
+
+import json
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Iterable
+
+from dubhack.llm.bedrock import query_llm
+
+logger = logging.getLogger(__name__)
+
+DocumentPath = str
+Keyword = str
+ConceptMap = dict[DocumentPath, list[Keyword]]
+
+
+class ConceptExtractor:
+    """Extract important concepts from documents via the LLM."""
+
+    PROMPT_TEMPLATE = """
+You are an expert knowledge architect. A document is attached to this message.
+Read only the provided document and identify the most important concepts or
+keywords contained in it. Return between 5 and 12 concise keyword strings.
+
+Respond ONLY with JSON in the following format:
+{{"document": "{document_name}", "keywords": ["keyword one", "keyword two", ...]}}
+"""
+
+    def __init__(self, max_workers: int = 4) -> None:
+        self._max_workers = max_workers
+
+    def extract(self, document_paths: Iterable[DocumentPath]) -> ConceptMap:
+        """Return a mapping of document path to extracted keyword list."""
+
+        paths = list(document_paths)
+        if not paths:
+            return {}
+
+        if len(paths) == 1:
+            document = paths[0]
+            return {document: self._extract_for_document(document)}
+
+        results: ConceptMap = {}
+        with ThreadPoolExecutor(max_workers=min(self._max_workers, len(paths))) as executor:
+            future_map = {
+                executor.submit(self._extract_for_document, document): document
+                for document in paths
+            }
+
+            for future in as_completed(future_map):
+                document = future_map[future]
+                try:
+                    results[document] = future.result()
+                except Exception:  # pragma: no cover - defensive logging
+                    logger.exception("Failed to extract concepts for document %s", document)
+                    # Surface empty results; upstream can decide how to handle failures.
+                    results[document] = []
+
+        return results
+
+    def _extract_for_document(self, document_path: DocumentPath) -> list[Keyword]:
+        document_name = Path(document_path).name
+        prompt = self.PROMPT_TEMPLATE.format(document_name=document_name)
+        response = query_llm(prompt, [document_path])
+        return self._parse_keywords(response)
+
+    @staticmethod
+    def _parse_keywords(response: str) -> list[Keyword]:
+        """Parse keyword list from the model response."""
+
+        payload = ConceptExtractor._load_json(response)
+        if isinstance(payload, dict):
+            keywords = payload.get("keywords", [])
+        elif isinstance(payload, list):
+            keywords = payload
+        else:
+            keywords = []
+
+        processed: list[str] = []
+        for keyword in keywords:
+            if not isinstance(keyword, str):
+                keyword = str(keyword)
+            keyword = keyword.strip()
+            if keyword and keyword not in processed:
+                processed.append(keyword)
+        return processed
+
+    @staticmethod
+    def _load_json(response: str) -> object:
+        """Attempt to deserialize JSON from an arbitrary model response."""
+
+        try:
+            return json.loads(response)
+        except json.JSONDecodeError:
+            pass
+
+        # Try to recover JSON that may be wrapped in markdown fences or text.
+        start = response.find("{")
+        end = response.rfind("}")
+        if start != -1 and end != -1 and start < end:
+            candidate = response[start : end + 1]
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+
+        start = response.find("[")
+        end = response.rfind("]")
+        if start != -1 and end != -1 and start < end:
+            candidate = response[start : end + 1]
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+
+        return {}
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+
+    from dubhack.services.document_store import DocumentStore
+
+    store = DocumentStore()
+    extractor = ConceptExtractor()
+
+    docs = store.get_documents()
+    if not docs:
+        logging.info("No documents found in %%s", store.base_path)
+    else:
+        logging.info("Extracting concepts for %d document(s)", len(docs))
+        concepts = extractor.extract(docs)
+        for path, keywords in concepts.items():
+            logging.info("%s -> %s", path, keywords)

@@ -1,5 +1,13 @@
 """Data models exposed by the dubhack package."""
 
-from .responses import ConceptSummaryResponse, StatusResponse
+from .responses import (
+    ConceptSummaryResponse,
+    PipelineStatusResponse,
+    StatusResponse,
+)
 
-__all__ = ["ConceptSummaryResponse", "StatusResponse"]
+__all__ = [
+    "ConceptSummaryResponse",
+    "PipelineStatusResponse",
+    "StatusResponse",
+]
