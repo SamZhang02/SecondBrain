@@ -51,7 +51,8 @@ export default function ForceGraph({
   useEffect(() => {
     if (typeof width === "number" && typeof height === "number") {
       setCanvasSize((current) => {
-        if (current.width === width && current.height === height) return current;
+        if (current.width === width && current.height === height)
+          return current;
         return { width, height };
       });
       return;
@@ -101,8 +102,12 @@ export default function ForceGraph({
 
     svg.selectAll("*").remove();
 
-    const nodes = data.nodes.map((node) => ({ ...node })) as InternalGraphNode[];
-    const links = data.links.map((link) => ({ ...link })) as InternalGraphLink[];
+    const nodes = data.nodes.map((node) => ({
+      ...node,
+    })) as InternalGraphNode[];
+    const links = data.links.map((link) => ({
+      ...link,
+    })) as InternalGraphLink[];
     const nodeById = new Map<GraphNodeId, InternalGraphNode>();
     nodes.forEach((node) => nodeById.set(node.id, node));
     const fillColors = colorMap ?? {};
@@ -135,8 +140,8 @@ export default function ForceGraph({
 
     const link = svg
       .append("g")
-      .attr("stroke", "hsl(var(--foreground))")
-      .attr("stroke-opacity", 0.85)
+      .attr("stroke", "var(--foreground)")
+      .attr("stroke-opacity", 0.7)
       .selectAll<SVGLineElement, InternalGraphLink>("line")
       .data(links)
       .join("line")
@@ -145,7 +150,6 @@ export default function ForceGraph({
 
     const node = svg
       .append("g")
-      .attr("stroke", "hsl(var(--foreground))")
       .attr("stroke-width", 1.5)
       .selectAll<SVGCircleElement, InternalGraphNode>("circle")
       .data(nodes)
