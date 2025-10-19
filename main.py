@@ -6,7 +6,6 @@ from dubhack.config import get_concept_store
 from dubhack.models import ConceptSummaryResponse, StatusResponse
 from dubhack.redis.concept_store import ConceptStore
 
-
 app = FastAPI(title="dubhack")
 
 

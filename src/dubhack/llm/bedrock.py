@@ -1,5 +1,6 @@
 """Helpers for invoking DeepSeek (Llama) via Amazon Bedrock."""
 
+import re
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -9,8 +10,17 @@ from botocore.exceptions import ClientError  # pyright: ignore[reportMissingType
 # Create a Bedrock Runtime client in the AWS Region you want to use.
 client = boto3.client("bedrock-runtime", region_name="us-east-1")
 
-# Set the model ID, e.g. Llama 3.1 90B Instruct.
-model_id = "us.meta.llama3-1-90b-instruct-v1:0"
+# Set the model ID, e.g. Llama 3.1 8B Instruct.
+model_id = "us.meta.llama3-1-8b-instruct-v1:0"
+
+
+def sanitize_filename(name: str) -> str:
+    # remove disallowed chars
+    name = re.sub(r"[^0-9A-Za-z \-\(\)\[\]]+", "", name)
+    # collapse multiple spaces into one
+    name = re.sub(r"\s{2,}", " ", name)
+    # trim leading/trailing spaces
+    return name.strip()
 
 
 def _load_document(path: Path) -> dict[Any, Any]:
@@ -31,13 +41,13 @@ def _load_document(path: Path) -> dict[Any, Any]:
     return {
         "document": {
             "format": fmt,
-            "name": path.name,
+            "name": sanitize_filename(path.name),
             "source": {"bytes": data},
         }
     }
 
 
-def query_llm(prompt: str, document_paths: Iterable[str]) -> str:
+def query_llm(prompt: str, document_paths: Iterable[str] | None = None) -> str:
     """Run the DeepSeek model with a prompt and optional documents and return the reply."""
 
     content = [{"text": prompt}]
@@ -65,7 +75,7 @@ def _health_check() -> None:
     """Basic smoke test to confirm Bedrock access."""
 
     try:
-        reply = invoke_deepseek("Hello world", [])
+        reply = query_llm("Hello world", [])
     except RuntimeError as exc:
         print(exc)
         return
