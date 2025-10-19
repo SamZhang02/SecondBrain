@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FileWithPath } from "react-dropzone";
 import { useLocation, useNavigate } from "react-router";
 
+import ForceGraph from "@/components/graph/force-graph";
 import { Button } from "@/components/ui/button";
 import {
   fetchPipelineStatus,
@@ -146,7 +147,12 @@ const Result = () => {
   };
 
   const extractedEntries = Object.entries(status?.extracted_documents ?? {});
-  const hasGraph = Boolean(status?.graph);
+  const graphData = status?.graph ?? null;
+  const hasGraph = Boolean(
+    graphData &&
+      ((graphData.nodes?.length ?? 0) > 0 ||
+        (graphData.links?.length ?? 0) > 0),
+  );
 
   const formatDocumentName = (path: string) => {
     const segments = path.split(/[/\\]/);
@@ -256,10 +262,10 @@ const Result = () => {
               <p className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
                 Graph
               </p>
-              {hasGraph ? (
-                <pre className="mt-2 overflow-auto rounded-xl bg-muted/40 p-4 text-xs">
-                  {JSON.stringify(status?.graph, null, 2)}
-                </pre>
+              {hasGraph && graphData ? (
+                <div className="mt-3 h-[420px]">
+                  <ForceGraph data={graphData} />
+                </div>
               ) : (
                 <p className="mt-2 text-sm text-muted-foreground">
                   Graph will appear once ready.
