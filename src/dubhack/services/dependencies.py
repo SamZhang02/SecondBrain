@@ -24,14 +24,14 @@ def get_document_store() -> DocumentStore:
 def get_concept_extractor() -> ConceptExtractor:
     """Return a cached concept extractor instance."""
 
-    return ConceptExtractor(max_workers=2)
+    return ConceptExtractor(max_workers=5)
 
 
 @lru_cache(maxsize=1)
 def get_concept_populator() -> ConceptPopulator:
     """Return a cached concept populator instance."""
 
-    return ConceptPopulator(get_concept_store(), max_workers=2)
+    return ConceptPopulator(get_concept_store(), max_workers=6)
 
 
 @lru_cache(maxsize=1)

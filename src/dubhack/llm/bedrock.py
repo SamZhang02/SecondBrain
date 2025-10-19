@@ -8,10 +8,11 @@ import boto3  # pyright: ignore[reportMissingTypeStubs]
 from botocore.exceptions import ClientError  # pyright: ignore[reportMissingTypeStubs]
 
 # Create a Bedrock Runtime client in the AWS Region you want to use.
-client = boto3.client("bedrock-runtime", region_name="us-west-2")
+client = boto3.client("bedrock-runtime", region_name="us-east-1")
 
 # Set the model ID, e.g. Llama 3.1 8B Instruct.
-model_id = "us.meta.llama3-1-8b-instruct-v1:0"
+# model_id = "us.meta.llama3-1-8b-instruct-v1:0"
+model_id = "amazon.nova-pro-v1:0"
 
 
 def sanitize_filename(name: str) -> str:

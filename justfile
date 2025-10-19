@@ -38,3 +38,4 @@ db-wipe:
 	echo "🧹 Wiping Redis container..."
 	docker exec -it secondbrain-redis redis-cli FLUSHALL
 	echo "✅ Redis Wiped"
+

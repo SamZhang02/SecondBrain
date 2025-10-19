@@ -24,9 +24,10 @@ class ConceptExtractor:
     PROMPT_TEMPLATE = """
 You are an expert knowledge architect. A document is attached to this message.
 Read only the provided document and identify the most important concepts or
-keywords contained in it. Be careful to not extract an acronym that has already been extracted as its full term, e.g. NLP vs Natural Language processing.
+keywords contained in it. They should be generic but important concepts that you would expect to appear in other essays or texts on similar topics.
+Be careful to not extract an acronym that has already been extracted as its full term, e.g. NLP vs Natural Language processing.
 
-Return 5 and 10 concise keyword strings. 
+ONLY RETURN 5 TO 10 CONCISE KEYWORD STRINGS. 
 
 Use proper casing with capitalized first letter if relevantcapitalized first letter if relevant.
 
@@ -116,7 +117,7 @@ Respond ONLY with JSON in the following format:
             keyword = keyword.strip()
             if keyword and keyword not in processed:
                 processed.append(keyword)
-        return processed
+        return processed[:10]
 
     @staticmethod
     def _load_json(response: str) -> object:
