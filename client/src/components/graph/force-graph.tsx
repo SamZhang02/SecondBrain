@@ -119,7 +119,7 @@ export default function ForceGraph({
         d3
           .forceLink<InternalGraphNode, InternalGraphLink>(links)
           .id((node) => node.id)
-          .distance(120),
+          .distance(Math.sqrt(nodes.length) * 20),
       )
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(computedWidth / 2, computedHeight / 2))

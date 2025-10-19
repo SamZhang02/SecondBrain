@@ -17,7 +17,7 @@ interface ResultLocationState {
 }
 
 const POLL_INTERVAL_MS = 2000;
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 
 const MOCK_STATUS: PipelineStatus = {
   state: "done",
