@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 
 import ForceGraph, { type GraphNode } from "@/components/graph/force-graph";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   fetchPipelineStatus,
   resetPipelineStatus,
@@ -372,9 +373,14 @@ const Result = () => {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Current State
                 </p>
-                <p className="mt-2 text-lg font-medium capitalize">
-                  {status.state}
-                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  {status.state !== "done" && status.state !== "error" ? (
+                    <Spinner className="size-5 text-muted-foreground" />
+                  ) : null}
+                  <p className="text-lg font-medium capitalize">
+                    {status.state}
+                  </p>
+                </div>
                 {status.message ? (
                   <p className="mt-1 text-sm text-destructive">
                     {status.message}

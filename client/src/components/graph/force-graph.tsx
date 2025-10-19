@@ -119,7 +119,7 @@ export default function ForceGraph({
         d3
           .forceLink<InternalGraphNode, InternalGraphLink>(links)
           .id((node) => node.id)
-          .distance(Math.sqrt(nodes.length) * 80),
+          .distance(Math.sqrt(nodes.length) * 50),
       )
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(computedWidth / 2, computedHeight / 2))
@@ -129,7 +129,7 @@ export default function ForceGraph({
         "collision",
         d3.forceCollide<InternalGraphNode>().radius((d) => {
           const textWidth = d.label?.length ?? 1;
-          return textWidth;
+          return textWidth / 2;
         }),
       );
 
