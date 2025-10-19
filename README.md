@@ -5,7 +5,7 @@ Second Brain helps you explore the latent connections inside your reading list. 
 ## Architecture
 - **Frontend (client/)** – React + Vite + Tailwind dashboard for uploads, pipeline status, and graph visualisation. Documents render as red nodes and extracted concepts as green nodes; shared concepts link every document they appear in.
 - **Backend (FastAPI)** – `main.py` exposes REST endpoints for health checks, uploads, pipeline status, and concept summaries. Uploads are written to `src/data/`, then a background pipeline compresses large PDFs, extracts keywords with the LLM, populates Redis-backed concept summaries, and emits a graph payload.
-- **LLM + Storage** – Concept extraction and summaries run through Amazon Bedrock (DeepSeek Llama 3.1) via `dubhack/llm/bedrock.py`. Redis (run via `docker-compose.yml`) stores generated summaries and pipeline state for quick lookups.
+- **LLM + Storage** – Concept extraction and summaries run through Amazon Bedrock via `dubhack/llm/bedrock.py`. Redis (run via `docker-compose.yml`) stores generated summaries and pipeline state is stored in memory for quick lookups.
 
 ## Quick Start
 1. Install prerequisites: [uv](https://github.com/astral-sh/uv) for Python deps, [just](https://github.com/casey/just) for task running, Docker for Redis, and pnpm for the client.
@@ -26,6 +26,4 @@ Second Brain helps you explore the latent connections inside your reading list. 
 ## Development Notes
 - Backend configuration lives in `dubhack/config.py`. Set `FRONTEND_ORIGIN` if the client runs on a non-default host, and export AWS credentials with permissions to invoke Bedrock.
 - Concept summaries live in Redis; wipe them with `just db-wipe` or stop the container with `just db-down`.
-- Additional helpers: `just fmt`, `just lint`, and `just test` cover formatting, linting, and backend tests. Use `client/justfile` for client-only commands if needed.
 
-Happy hacking!
