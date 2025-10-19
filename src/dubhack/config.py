@@ -1,10 +1,13 @@
 """Application configuration utilities and dependency providers."""
 
 from functools import lru_cache
+from pathlib import Path
 
 import redis
 
 from dubhack.redis.concept_store import ConceptStore
+
+DOCUMENTS_PERSIST_PATH = Path("/Users/samzhang/repos/dubhack/src/data")
 
 
 @lru_cache(maxsize=1)
