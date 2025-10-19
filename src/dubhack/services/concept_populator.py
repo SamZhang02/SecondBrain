@@ -26,7 +26,7 @@ class ConceptPopulator:
     The concept that you will write on is: 
     """
 
-    def __init__(self, concept_store: ConceptStore, max_workers: int = 4) -> None:
+    def __init__(self, concept_store: ConceptStore, max_workers: int = 3) -> None:
         self._concept_store = concept_store
         self._max_workers = max_workers
         self._lock = Lock()
