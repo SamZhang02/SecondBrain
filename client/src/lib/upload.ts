@@ -1,6 +1,7 @@
 import type { FileWithPath } from "react-dropzone";
 
 import { API_BASE_URL } from "@/lib/env";
+import type { ForceGraphData } from "@/lib/graph";
 
 export const createFileKey = (file: FileWithPath) =>
   `${file.path ?? file.name}-${file.lastModified}-${file.size}`;
@@ -43,7 +44,7 @@ export interface PipelineStatus {
   compressed_documents: string[];
   extracted_documents: Record<string, string[]>;
   populated_concepts: string[];
-  graph?: unknown;
+  graph?: ForceGraphData | null;
   message?: string | null;
 }
 
