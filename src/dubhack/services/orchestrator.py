@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from pathlib import Path
 from threading import Event, Lock
 from typing import Any, Optional, Protocol
 
+from botocore.exceptions import ClientError
+
+from dubhack.redis.concept_store import ConceptStore
 from dubhack.services.concept_extractor import ConceptExtractor, ConceptMap
 from dubhack.services.concept_populator import ConceptPopulator
 from dubhack.services.document_store import DocumentStore
-from dubhack.redis.concept_store import ConceptStore
 from dubhack.services.pdf_compressor import PDFCompressor
+
+
+logger = logging.getLogger(__name__)
 
 
 class GraphBuilder(Protocol):
@@ -153,6 +159,12 @@ class Orchestrator:
             self._set_state(PipelineState.DONE)
             return concepts
         except Exception as exc:  # pragma: no cover - defensive logging
+            if self._is_throttling_error(exc):
+                self._error_message = str(exc)
+                logger.warning("Pipeline throttled during population: %s", exc)
+                self._last_concepts = self._concept_extractor.progress()
+                return self._last_concepts
+
             self._error_message = str(exc)
             self._set_state(PipelineState.ERROR)
             raise
@@ -197,6 +209,24 @@ class Orchestrator:
         if self._concept_populator:
             self._concept_populator.clear_progress()
         self._set_state(PipelineState.STARTING)
+
+    @staticmethod
+    def _is_throttling_error(exc: Exception) -> bool:
+        """Return True when the exception indicates a throttling condition."""
+
+        if isinstance(exc, ClientError):
+            error = exc.response.get("Error", {})
+            code = error.get("Code", "")
+            return code in {"ThrottlingException", "TooManyRequestsException", "LimitExceededException"}
+
+        message = str(exc)
+        throttle_markers = (
+            "ThrottlingException",
+            "TooManyRequests",
+            "Rate exceeded",
+            "SlowDown",
+        )
+        return any(marker in message for marker in throttle_markers)
 
     def _format_oversized_error(self, documents: list[str]) -> str:
         filenames = [Path(path).name for path in documents]
