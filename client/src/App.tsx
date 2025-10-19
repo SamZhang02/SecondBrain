@@ -1,10 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FileWithPath } from "react-dropzone";
+import { useNavigate } from "react-router";
 
 import UploadDropzone from "@/components/upload/UploadDropzone";
 import UploadsCard from "@/components/upload/UploadsCard";
 import { Button } from "@/components/ui/button";
-import { mergeFiles, removeFile, uploadDocuments } from "@/lib/upload";
+import { mergeFiles, removeFile } from "@/lib/upload";
 
 const Header = () => {
   return (
@@ -29,11 +30,13 @@ const Header = () => {
 
 const App = () => {
   const [uploadedFiles, setUploadedFiles] = useState<FileWithPath[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const navigate = useNavigate();
 
   const handleDrop = useCallback((files: FileWithPath[]) => {
-    setErrorMessage(null);
     setUploadedFiles((previousFiles) => mergeFiles(previousFiles, files));
   }, []);
 
@@ -43,23 +46,26 @@ const App = () => {
     );
   }, []);
 
-  const handleGenerate = useCallback(async () => {
-    setIsUploading(true);
-    setErrorMessage(null);
-
-    try {
-      const status = await uploadDocuments(uploadedFiles);
-      setUploadedFiles([]);
-    } catch (error) {
-      if (error instanceof Error) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage("Something went wrong while uploading.");
-      }
-    } finally {
-      setIsUploading(false);
+  const handleGenerate = useCallback(() => {
+    if (!uploadedFiles.length) {
+      return;
     }
-  }, [uploadedFiles]);
+
+    const filesToUpload = [...uploadedFiles];
+    setUploadedFiles([]);
+    setIsTransitioning(true);
+
+    navigate("/result", { state: { files: filesToUpload } });
+  }, [navigate, uploadedFiles]);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+      setIsTransitioning(false);
+    };
+  }, []);
 
   const hasUploads = uploadedFiles.length > 0;
 
@@ -75,16 +81,11 @@ const App = () => {
         <Button
           type="button"
           className="w-40 max-w-2xl"
-          disabled={!hasUploads || isUploading}
+          disabled={!hasUploads || isTransitioning}
           onClick={handleGenerate}
         >
-          {isUploading ? "Uploading..." : "Generate"}
+          {isTransitioning ? "Preparing..." : "Generate"}
         </Button>
-        {errorMessage && (
-          <p className="text-sm text-destructive" role="alert">
-            {errorMessage}
-          </p>
-        )}
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-40 -z-10 h-[520px] bg-gradient-radial from-primary/20 via-transparent to-transparent blur-3xl" />

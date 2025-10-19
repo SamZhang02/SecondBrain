@@ -45,8 +45,18 @@ async def upload(
     if not documents:
         raise HTTPException(status_code=400, detail="No documents provided")
 
-    if orchestrator.current_state() != PipelineState.DONE.value:
+    if orchestrator.current_state() not in {
+        PipelineState.DONE.value,
+        PipelineState.ERROR.value,
+        PipelineState.STARTING.value,
+    }:
         raise HTTPException(status_code=409, detail="Pipeline is already running")
+
+    try:
+        orchestrator.reset()
+    except RuntimeError:
+        # Safe to ignore as we already verified the pipeline is idle.
+        pass
 
     DOCUMENTS_PERSIST_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -78,21 +88,47 @@ async def status(
     """Return the current state of the document processing pipeline."""
 
     state = orchestrator.current_state()
-    concepts = orchestrator.last_concepts() if state == PipelineState.DONE.value else None
+    compressed = orchestrator.last_compressed_documents()
+    extracted = orchestrator.extraction_progress()
+    populated = orchestrator.population_progress()
     graph = orchestrator.last_graph() if state == PipelineState.DONE.value else None
+    message = orchestrator.last_error() if state == PipelineState.ERROR.value else None
 
-    return PipelineStatusResponse(state=state, concepts=concepts, graph=graph)
+    return PipelineStatusResponse(
+        state=state,
+        compressed_documents=compressed,
+        extracted_documents=extracted,
+        populated_concepts=populated,
+        graph=graph,
+        message=message,
+    )
 
 
 @app.post("/status/cancel", tags=["status"], response_model=StatusResponse)
 async def cancel(orchestrator: Orchestrator = Depends(get_orchestrator)) -> StatusResponse:
     """Request cancellation of the running pipeline."""
 
-    if orchestrator.current_state() == PipelineState.DONE.value:
+    if orchestrator.current_state() in {
+        PipelineState.DONE.value,
+        PipelineState.ERROR.value,
+        PipelineState.STARTING.value,
+    }:
         raise HTTPException(status_code=409, detail="Pipeline is not running")
 
     orchestrator.cancel()
     return StatusResponse(status="cancellation requested")
+
+
+@app.post("/status/reset", tags=["status"], response_model=StatusResponse)
+async def reset(orchestrator: Orchestrator = Depends(get_orchestrator)) -> StatusResponse:
+    """Clear cached pipeline results for a fresh session."""
+
+    try:
+        orchestrator.reset()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return StatusResponse(status="reset")
 
 
 @app.get("/concepts/{concept_name}", tags=["concepts"], response_model=ConceptSummaryResponse)

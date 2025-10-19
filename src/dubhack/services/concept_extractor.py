@@ -6,6 +6,7 @@ import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from threading import Lock
 from typing import Iterable
 
 from dubhack.llm.bedrock import query_llm
@@ -23,7 +24,7 @@ class ConceptExtractor:
     PROMPT_TEMPLATE = """
 You are an expert knowledge architect. A document is attached to this message.
 Read only the provided document and identify the most important concepts or
-keywords contained in it. Return between 5 and 12 concise keyword strings.
+keywords contained in it. Return between 5 and 12 concise keyword strings. Use proper casing with capitalized first letter if relevantcapitalized first letter if relevant.
 
 Respond ONLY with JSON in the following format:
 {{"document": "{document_name}", "keywords": ["keyword one", "keyword two", ...]}}
@@ -31,6 +32,20 @@ Respond ONLY with JSON in the following format:
 
     def __init__(self, max_workers: int = 4) -> None:
         self._max_workers = max_workers
+        self._lock = Lock()
+        self._progress: ConceptMap = {}
+
+    def clear_progress(self) -> None:
+        """Reset tracked extraction progress."""
+
+        with self._lock:
+            self._progress = {}
+
+    def progress(self) -> ConceptMap:
+        """Return a shallow copy of the extraction progress so far."""
+
+        with self._lock:
+            return dict(self._progress)
 
     def extract(self, document_paths: Iterable[DocumentPath]) -> ConceptMap:
         """Return a mapping of document path to extracted keyword list."""
@@ -39,9 +54,13 @@ Respond ONLY with JSON in the following format:
         if not paths:
             return {}
 
+        self.clear_progress()
+
         if len(paths) == 1:
             document = paths[0]
-            return {document: self._extract_for_document(document)}
+            keywords = self._extract_for_document(document)
+            self._record_result(document, keywords)
+            return self.progress()
 
         results: ConceptMap = {}
         with ThreadPoolExecutor(max_workers=min(self._max_workers, len(paths))) as executor:
@@ -53,19 +72,26 @@ Respond ONLY with JSON in the following format:
             for future in as_completed(future_map):
                 document = future_map[future]
                 try:
-                    results[document] = future.result()
+                    keywords = future.result()
+                    results[document] = keywords
+                    self._record_result(document, keywords)
                 except Exception:  # pragma: no cover - defensive logging
                     logger.exception("Failed to extract concepts for document %s", document)
                     # Surface empty results; upstream can decide how to handle failures.
                     results[document] = []
+                    self._record_result(document, [])
 
-        return results
+        return self.progress()
 
     def _extract_for_document(self, document_path: DocumentPath) -> list[Keyword]:
         document_name = Path(document_path).name
         prompt = self.PROMPT_TEMPLATE.format(document_name=document_name)
         response = query_llm(prompt, [document_path])
         return self._parse_keywords(response)
+
+    def _record_result(self, document: DocumentPath, keywords: list[Keyword]) -> None:
+        with self._lock:
+            self._progress[document] = keywords
 
     @staticmethod
     def _parse_keywords(response: str) -> list[Keyword]:

@@ -5,7 +5,6 @@ install:
 	uv sync
 	just client/install
 
-
 fmt:
 	uv run ruff check --fix .
 	uv run black .

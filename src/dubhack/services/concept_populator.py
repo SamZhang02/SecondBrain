@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable, Sequence
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 from typing import final
 
 from dubhack.llm.bedrock import query_llm
 from dubhack.redis.concept_store import ConceptStore
 
 Concept = str
+
+logger = logging.getLogger(__name__)
 
 
 @final
@@ -21,16 +26,57 @@ class ConceptPopulator:
     The concept that you will write on is: 
     """
 
-    def __init__(self, concept_store: ConceptStore) -> None:
+    def __init__(self, concept_store: ConceptStore, max_workers: int = 4) -> None:
         self._concept_store = concept_store
+        self._max_workers = max_workers
+        self._lock = Lock()
+        self._completed: list[Concept] = []
+
+    def clear_progress(self) -> None:
+        """Reset tracked population progress."""
+
+        with self._lock:
+            self._completed = []
+
+    def completed_concepts(self) -> list[Concept]:
+        """Return the list of concepts successfully populated so far."""
+
+        with self._lock:
+            return list(self._completed)
 
     def populate(self, concepts: Iterable[Concept], documents: Sequence[str]) -> None:
         """Generate summaries for every concept and store them."""
-        for concept in concepts:
-            summary = query_llm(self.PROMPT + concept, documents)
-            # Overwrite or create the concept entry with the generated summary.
-            self._concept_store.create_concept(concept, summary)
+        concept_list = list(dict.fromkeys(concepts))
+        if not concept_list:
+            return
 
+        self.clear_progress()
+
+        with ThreadPoolExecutor(
+            max_workers=min(self._max_workers, len(concept_list))
+        ) as executor:
+            future_map = {
+                executor.submit(self._populate_single, concept, documents): concept
+                for concept in concept_list
+            }
+
+            for future in as_completed(future_map):
+                concept = future_map[future]
+                try:
+                    future.result()
+                except Exception as exc:  # pragma: no cover - defensive logging
+                    logger.exception("Failed to populate concept %s", concept)
+                    raise exc
+
+    def _populate_single(self, concept: Concept, documents: Sequence[str]) -> None:
+        summary = query_llm(self.PROMPT + concept, documents)
+        self._concept_store.create_concept(concept, summary)
+        self._record_completion(concept)
+
+    def _record_completion(self, concept: Concept) -> None:
+        with self._lock:
+            if concept not in self._completed:
+                self._completed.append(concept)
 
 if __name__ == "__main__":
     import redis
