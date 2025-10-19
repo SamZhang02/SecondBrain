@@ -88,7 +88,11 @@ export const fetchPipelineStatus = async (): Promise<PipelineStatus> => {
       errorBody = undefined;
     }
 
-    throw new Error(errorBody?.detail ?? errorBody?.message ?? "Failed to fetch pipeline status");
+    throw new Error(
+      errorBody?.detail ??
+        errorBody?.message ??
+        "Failed to fetch pipeline status",
+    );
   }
 
   const body = (await response.json()) as PipelineStatus;
@@ -116,7 +120,10 @@ export const resetPipelineStatus = async (): Promise<void> => {
       errorBody = undefined;
     }
 
-    const message = errorBody?.detail ?? errorBody?.message ?? "Failed to reset pipeline status";
+    const message =
+      errorBody?.detail ??
+      errorBody?.message ??
+      "Failed to reset pipeline status";
     throw new Error(message);
   }
 };

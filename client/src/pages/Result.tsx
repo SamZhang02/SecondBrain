@@ -366,10 +366,10 @@ const Result = () => {
               layout
               animate={{ x: showGraphPanel ? -16 : 0 }}
               transition={{ type: "spring", stiffness: 260, damping: 30 }}
-              className={`w-full space-y-6 rounded-3xl border border-border/50 bg-background/80 p-6 shadow-xs ${showGraphPanel ? "lg:max-w-md" : "max-w-3xl"}`}
+              className={`w-full space-y-8 rounded-3xl border border-border/50 bg-background/80 p-6 shadow-xs ${showGraphPanel ? "lg:max-w-md" : "max-w-3xl"}`}
             >
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Current State
                 </p>
                 <p className="mt-2 text-lg font-medium capitalize">
@@ -383,7 +383,7 @@ const Result = () => {
               </div>
 
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Compressed Documents
                 </p>
                 {status?.compressed_documents?.length ? (
@@ -400,7 +400,7 @@ const Result = () => {
               </div>
 
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Extracted Concepts
                 </p>
                 {extractedEntries.length ? (
@@ -432,7 +432,7 @@ const Result = () => {
               </div>
 
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Populated Concepts
                 </p>
                 {status.populated_concepts.length ? (
@@ -455,7 +455,7 @@ const Result = () => {
 
               {!showGraphPanel ? (
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                     Graph
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">

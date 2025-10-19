@@ -21,7 +21,9 @@ class ConceptPopulator:
     """Populate the concept store with generated summaries."""
 
     PROMPT = """
-    Given this list of documents write a mini wiki. The structure of the wiki should be composed of 2 to 4 paragraphs. The first paragraph is a couple sentence summary of the concept based on the given documents and your knowledge. The rest of the paragraph should compare how the concept the presented in each document, and any connections, whether it is similarities, differences, or related in some way. ONLY REFER TO DOCUMENTS I GAVE YOU, DO NOT REFER TO EXTERNAL SOURCES.
+    Given this list of documents write a mini wiki. The structure of the wiki should be composed of 2 to 4 paragraphs. The first paragraph is a couple sentence summary of the concept based on the given documents and your knowledge. The rest of the paragraph should compare how the concept the presented in each document, and any connections, whether it is similarities, differences, or related in some way. ONLY REFER TO THE DOCUMENT IF THE CONCEPT WAS DIRECTLY MENTIONED. DO NOT REFER TO THE DOCUMENT IF THE CONCEPT IS NOT DIRECTLY MENTIONED. DO STATE THE DOCUMENT NAME WHEN YOU REFER TO THEM.
+
+    ONLY REFER TO DOCUMENTS I GAVE YOU FOR THESE LAST SECTIONS, DO NOT REFER TO EXTERNAL SOURCES.
 
     The concept that you will write on is: 
     """
@@ -52,9 +54,7 @@ class ConceptPopulator:
 
         self.clear_progress()
 
-        with ThreadPoolExecutor(
-            max_workers=min(self._max_workers, len(concept_list))
-        ) as executor:
+        with ThreadPoolExecutor(max_workers=min(self._max_workers, len(concept_list))) as executor:
             future_map = {
                 executor.submit(self._populate_single, concept, documents): concept
                 for concept in concept_list
@@ -77,6 +77,7 @@ class ConceptPopulator:
         with self._lock:
             if concept not in self._completed:
                 self._completed.append(concept)
+
 
 if __name__ == "__main__":
     import redis
